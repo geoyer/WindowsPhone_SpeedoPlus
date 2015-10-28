@@ -1,0 +1,170 @@
+﻿<!--
+This code is licensed under the Microsoft Reciprocal License (MS-RL). See the LICENSE file for details.
+Contributors: Long Zheng, Solal Pirelli
+-->
+
+<phone:PhoneApplicationPage x:Class="Speedo.MainPage"
+                            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                            xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+                            xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+                            xmlns:bar="clr-namespace:BindableApplicationBar;assembly=BindableApplicationBar"
+                            xmlns:myControls="clr-namespace:Speedo.Controls"
+                            xmlns:tool="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit" 
+                            Style="{StaticResource PageStyle}">
+    <shell:SystemTray.ProgressIndicator>
+        <shell:ProgressIndicator IsIndeterminate="True" 
+                                 IsVisible="{Binding IsLocating}" 
+                                 Text="Locating..." />
+    </shell:SystemTray.ProgressIndicator>
+    
+    <Grid Background="{StaticResource PhoneBackgroundBrush}">
+        <!-- Main grid -->
+        <Grid RenderTransformOrigin="0.5,0.5">
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+
+            <!-- Background map -->
+            <myControls:BackgroundMap Grid.RowSpan="6"
+                                      Source="{Binding MovementSource}" 
+                                      Status="{Binding MapStatus}" />
+
+            <!-- Status -->
+            <TextBlock Grid.Row="1"
+                       Text="{Binding GpsStatus, Converter={StaticResource EnumToString}}"
+                       HorizontalAlignment="Center" />
+
+            <!-- Speed (avg/current/max) -->
+            <myControls:SpeedDisplay Grid.Row="2"
+                                     Source="{Binding MovementSource}"
+                                     Unit="{Binding Settings.SpeedUnit}" />
+
+            <!-- Speed graph -->
+            <myControls:SpeedGraph Grid.Row="3"
+                                   Source="{Binding MovementSource}"
+                                   PointsCount="360"
+                                   Height="30"
+                                   Margin="20,0"
+                                   Visibility="{Binding IsWindscreenModeEnabled, Converter={StaticResource BoolToOppositeVisibility}}" />
+
+            <!-- Direction -->
+            <myControls:DirectionDisplay Grid.Row="4"
+                                         Source="{Binding MovementSource}"
+                                         HorizontalAlignment="Center" />
+
+            <!-- Distance -->
+            <myControls:DistanceDisplay Grid.Row="5"
+                                        Source="{Binding MovementSource}"
+                                        VerticalAlignment="Bottom"
+                                        HorizontalAlignment="Center" />
+            
+            <Grid.RenderTransform>
+                <ScaleTransform x:Name="ContentScaleTransform" />
+            </Grid.RenderTransform>
+        </Grid>
+
+        <!-- Settings grid (switch map, alert, windscreen mode) -->
+        <myControls:PhantomGrid>
+            <myControls:PhantomGrid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </myControls:PhantomGrid.ColumnDefinitions>
+            <myControls:PhantomGrid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+                <RowDefinition Height="Auto" />
+            </myControls:PhantomGrid.RowDefinitions>
+
+            <!-- Windscreen mode button container -->
+            <Grid>
+                <myControls:BubbleButton Command="{Binding SwitchWindscreenModeCommand}"
+                                         Style="{StaticResource RoundIconButton}" 
+                                         tool:TiltEffect.IsTiltEnabled="True">
+                    <ImageBrush ImageSource="Resources/windscreen.png" />
+                </myControls:BubbleButton>
+                <Grid Style="{StaticResource RoundIconButtonOverlay}"
+                      Visibility="{Binding IsWindscreenModeEnabled, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.OpacityMask>
+                        <ImageBrush ImageSource="Resources/windscreen.png" />
+                    </Grid.OpacityMask>
+                </Grid>
+            </Grid>
+
+            <!-- Map button container -->
+            <Grid x:Name="MapRoot" 
+                  Grid.Column="2">
+                <myControls:BubbleButton Command="{Binding SwitchMapStatusCommand}"
+                                         Style="{StaticResource RoundIconButton}" 
+                                         tool:TiltEffect.IsTiltEnabled="True">
+                    <ImageBrush ImageSource="Resources/map.png" />
+                </myControls:BubbleButton>
+            </Grid>
+
+            <!-- Speed alert button container -->
+            <Grid x:Name="AlertRoot"
+                  Grid.Row="2">
+                <myControls:BubbleButton Command="{Binding SwitchSpeedAlertCommand}"
+                                         Style="{StaticResource RoundIconButton}" 
+                                         tool:TiltEffect.IsTiltEnabled="True">
+                    <ImageBrush ImageSource="Resources/alert.png" />
+                </myControls:BubbleButton>
+                <Grid Style="{StaticResource RoundIconButtonOverlay}"
+                      Visibility="{Binding Settings.IsSpeedAlertEnabled, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.OpacityMask>
+                        <ImageBrush ImageSource="Resources/alert.png" />
+                    </Grid.OpacityMask>
+                </Grid>
+            </Grid>
+        </myControls:PhantomGrid>
+
+        <!-- Change the settings button placement when using landscape orientation -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="OrientationStates">
+                <VisualState x:Name="PortraitUp" />
+                <VisualState x:Name="LandscapeRight">
+                    <Storyboard>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="AlertRoot"
+                                                       Storyboard.TargetProperty="(Grid.Column)"
+                                                       Duration="0">
+                            <DiscreteObjectKeyFrame KeyTime="0" Value="2" />
+                        </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+                <VisualState x:Name="LandscapeLeft">
+                    <Storyboard>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="MapRoot"
+                                                       Storyboard.TargetProperty="(Grid.Row)"
+                                                       Duration="0">
+                            <DiscreteObjectKeyFrame KeyTime="0" Value="2" />
+                        </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+    </Grid>
+
+    <!-- Application bar -->
+    <bar:Bindable.ApplicationBar>
+        <bar:BindableApplicationBar IsVisible="True"
+                                    IsMenuEnabled="True"
+                                    Mode="Minimized"
+                                    Opacity="{Binding IsMenuVisible, RelativeSource={RelativeSource Self}, 
+                                                      Converter={StaticResource BoolToAppBarOpacity}}">
+            <bar:BindableApplicationBar.MenuItems>
+                <bar:BindableApplicationBarMenuItem Text="{Binding Settings.SpeedUnit, Converter={StaticResource SpeedToSwitchString}}"
+                                                    Command="{Binding SwitchUnitsCommand}" />
+                <bar:BindableApplicationBarMenuItem Text="{Binding Settings.AllowLocationAccess, Converter={StaticResource LocationAccessToMenuString}}" 
+                                                    Command="{Binding SwitchLocationAccessCommand}" />
+                <bar:BindableApplicationBarMenuItem Text="{Binding Resources.AboutMenu, Source={StaticResource Strings}}" 
+                                                    Command="{Binding AboutCommand}" />
+            </bar:BindableApplicationBar.MenuItems>
+        </bar:BindableApplicationBar>
+    </bar:Bindable.ApplicationBar>
+</phone:PhoneApplicationPage>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
